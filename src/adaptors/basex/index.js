@@ -78,8 +78,16 @@ const query = gql`
   }
 `;
 
+const { reportHealth } = require('../utils/healthReport');
+
 const apy = async () => {
-  const data = await request(api, query);
+  let data;
+  try {
+    data = await request(api, query);
+  } catch (err) {
+    await reportHealth('basex', err);
+    throw err;
+  }
 
   const pools = data.getV3Pools.map((p) => {
     const apyBase =
@@ -102,6 +110,8 @@ const apy = async () => {
       volumeUsd1d: p.dynamicData.volume24h,
     };
   });
+
+  await reportHealth('basex', null, { pools: pools.length });
 
   return pools;
 };
